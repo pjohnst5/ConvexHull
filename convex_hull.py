@@ -14,7 +14,13 @@ else:
 
 
 import time
+import math
 
+class Tan:
+	def __init__(self, indexL, indexR, slope):
+		self.indexL = indexL
+		self.indexR = indexR
+		self.slope = slope
 
 
 class ConvexHullSolverThread(QThread):
@@ -35,23 +41,132 @@ class ConvexHullSolverThread(QThread):
 	erase_tangent = pyqtSignal(list)
 
 #Begin My functions
+	#Show hull
+	def showHull(self, points):
+		lines = []
+		for i in range(len(points) - 1):
+			lines.append(QLineF(points[i],points[i+1]))
+		lines.append(QLineF(points[len(points)-1], points[0]))
+		assert( type(lines) == list and type(lines[0]) == QLineF )
+		self.show_hull.emit(lines,(255,0,0))
+
+	#Show Tangent
+	def showTan(self, p1, p2):
+		lines = [QLineF(p1,p2)]
+		assert( type(lines) == list and type(lines[0]) == QLineF )
+		self.show_tangent.emit(lines,(0,255,0))
+
+	#Erase Tangent
+	def eraseTan(self, p1, p2):
+		lines = [QLineF(p1,p2)]
+		assert( type(lines) == list and type(lines[0]) == QLineF )
+		self.erase_tangent.emit(lines)
+
+	#Gets slope of two points
 	def slope(self, p1, p2):
 		rise = p1.y() - p2.y()
 		run = p1.x() - p2.x()
 		return rise/run
 
+	#Returns the hull and the index of right most point
 	def clockwiseOrder(self, points):
 		if len(points) == 1:
 			return points, 0
 		elif len(points) == 2:
 			return points, 1
 		else:
-			slopeToB = self.slope()
+			clockwisePoints = [points[0]]
+			slopeTo1 = self.slope(points[0], points[1])
+			slopeTo2 = self.slope(points[0], points[2])
+
+			#In the rare case the slopes are the same we see which point is closer x-wise
+			if slopeTo1 == slopeTo2:
+				if points[1].x() < points[2].x():
+					clockwisePoints.append(points[1])
+					clockwisePoints.append(points[2])
+					return clockwisePoints, 2
+				else:
+					clockwisePoints.append(points[2])
+					clockwisePoints.append(points[1])
+					return clockwisePoints, 1
+
+			#If the slopes aren't equal, the point with the highest slope is next in clockwise ordering
+			if slopeTo1 > slopeTo2:
+				clockwisePoints.append(points[1])
+				clockwisePoints.append(points[2])
+			else:
+				clockwisePoints.append(points[2])
+				clockwisePoints.append(points[1])
+			#Which of those points is right most?
+			if clockwisePoints[1].x() > clockwisePoints[2].x():
+				return clockwisePoints, 1
+			return clockwisePoints,2
+
+
+	def combine(self, left, rmiL, right, rmiR):
+		#This is the upper tan to start with, right most point of left hull and leftmost point of right hull
+		#I'm using indexes to keep track of points in order to go counter clockwise or clockwise
+		upperTan = Tan(rmiL, 0, self.slope(left[rmiL], right[0]))
+		self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+		moved1 = True
+		moved2 = True
+		while moved1 or moved2:
+			if self.slope(left[(upperTan.indexL - 1) % len(left)],right[upperTan.indexR]) < upperTan.slope:
+				self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
+				upperTan.indexL = (upperTan.indexL - 1) % len(left)
+				upperTan.slope = self.slope(left[upperTan.indexL],right[upperTan.indexR])
+				self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+				moved1 = True
+			else:
+				moved1 = False
+
+
+			if self.slope(left[upperTan.indexL],right[(upperTan.indexR+1) % len(right)]) > upperTan.slope:
+				self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
+				upperTan.indexR	= ((upperTan.indexR + 1) % len(right))
+				upperTan.slope = self.slope(left[upperTan.indexL],right[upperTan.indexR])
+				self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+				moved2 = True
+			else:
+				moved2 = False
+
+		#Time to compute the lower tangent
+		lowerTan = Tan(rmiL, 0, self.slope(left[rmiL], right[0]))
+		self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+		moved1 = True
+		moved2 = True
+
+		while moved1 or moved2:
+			if self.slope(left[(lowerTan.indexL+1) % len(left)],right[lowerTan.indexR]) > lowerTan.slope:
+				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				lowerTan.indexL = (lowerTan.indexL+1) % len(left)
+				lowerTan.slope = self.slope(left[lowerTan.indexL], right[lowerTan.indexR])
+				self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				moved1 = True
+			else:
+				moved1 = False
+
+			if self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]) < lowerTan.slope:
+				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				lowerTan.indexR = (lowerTan.indexR-1) % len(right)
+				lowerTan.slope = self.slope(left[lowerTan.indexL], right[lowerTan.indexR])
+				self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				moved2 = True
+			else:
+				moved2 = False
+
+
+
 
 
 	def getHull(self, points):
 		if len(points) < 4:
 			return self.clockwiseOrder(points)
+		left, rmiL = self.getHull(points[0:math.ceil(len(points)/2)])
+		self.showHull(left)
+		right, rmiR = self.getHull(points[math.ceil(len(points)/2):])
+		self.showHull(right)
+		return self.combine(left, rmiL, right, rmiR)
 
 #End my functions
 

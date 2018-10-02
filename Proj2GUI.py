@@ -54,7 +54,7 @@ class PointLineView( QWidget ):
 					try:
 						self.lineList[color].remove(line)
 					except:
-						pass	
+						pass
 		self.repaint()
 		#time.sleep(PAUSE)
 
@@ -72,7 +72,7 @@ class PointLineView( QWidget ):
 		self.repaint()
 		time.sleep(PAUSE)
 
-	def paintEvent(self, event):						  
+	def paintEvent(self, event):
 		#print('Paint!!!')
 		painter = QPainter(self)
 		painter.setRenderHint(QPainter.Antialiasing,True)
@@ -111,9 +111,9 @@ class Proj2GUI( QMainWindow ):
 	def __init__( self ):
 		super(Proj2GUI,self).__init__()
 
-		self.points = None								
-		self.initUI()									
-       
+		self.points = None
+		self.initUI()
+
 	def newPoints(self):
 
 		# TODO - ERROR CHECKING!!!!
@@ -139,7 +139,7 @@ class Proj2GUI( QMainWindow ):
 					if not xval in unique_xvals:
 						ptlist.append( QPointF(xval,yval) )
 						unique_xvals[xval] = 1      # dict/map with float keys?
-		elif self.distribSphere.isChecked():		
+		elif self.distribSphere.isChecked():
 			while len(ptlist) < npoints:
 				x = random.uniform(-1.0,1.0)
 				y = random.uniform(-1.0,1.0)
@@ -166,9 +166,9 @@ class Proj2GUI( QMainWindow ):
 		#print('clearClicked')
 		self.view.clearLines()
 		self.solveButton.setEnabled(True)
-		self.view.repaint()								
+		self.view.repaint()
 
-	def generateClicked(self):												
+	def generateClicked(self):
 		#print('generateClicked')
 		if self.points:
 				self.view.clearPoints()
@@ -196,7 +196,7 @@ class Proj2GUI( QMainWindow ):
 
 	def _randbytime(self):
 		self.randSeed.setEnabled(False)
-	
+
 	def _randbyseed(self):
 		self.randSeed.setEnabled(True)
 
@@ -213,7 +213,7 @@ class Proj2GUI( QMainWindow ):
 		self.setCentralWidget( boxwidget )
 
 		self.view           = PointLineView( self.statusBar )
-		self.npoints        = QLineEdit('10')
+		self.npoints        = QLineEdit('6')
 		self.generateButton = QPushButton('Generate')
 		self.solveButton    = QPushButton('Solve')
 		self.clearButton    = QPushButton('Clear To Points')
@@ -239,7 +239,7 @@ class Proj2GUI( QMainWindow ):
 		h.addWidget( self.clearButton )
 		h.addStretch(1)
 		vbox.addLayout(h)
-        
+
 		h = QHBoxLayout()
 		grp = QButtonGroup(self)
 		grp.addButton(self.distribOval)
@@ -286,7 +286,7 @@ class Proj2GUI( QMainWindow ):
 if __name__ == '__main__':
 	# This line allows CNTL-C in the terminal to kill the program
 	signal.signal(signal.SIGINT, signal.SIG_DFL)
-    
+
 	app = QApplication(sys.argv)
 	w = Proj2GUI()
 	sys.exit(app.exec())
