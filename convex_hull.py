@@ -16,6 +16,7 @@ else:
 import time
 import math
 
+#Custom tan class which holds indexes of points, not the points themselves
 class Tan:
 	def __init__(self, indexL, indexR, slope):
 		self.indexL = indexL
@@ -130,7 +131,7 @@ class ConvexHullSolverThread(QThread):
 			else:
 				moved2 = False
 
-		#Time to compute the lower tangent
+		#Compute the lower tangent
 		lowerTan = Tan(rmiL, 0, self.slope(left[rmiL], right[0]))
 		self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
 		moved1 = True
@@ -154,6 +155,8 @@ class ConvexHullSolverThread(QThread):
 				moved2 = True
 			else:
 				moved2 = False
+
+		#TODO: get rid of middle points and add tangent lines as new lines of a bigger combined hull
 
 
 
@@ -185,7 +188,7 @@ class ConvexHullSolverThread(QThread):
 
 		#Time to compute the hull using divide and conquer
 		t3 = time.time()
-		answer = self.getHull(self.points)
+		answer, rmi = self.getHull(self.points)
 
 
 		t4 = time.time()
