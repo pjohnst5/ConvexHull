@@ -131,7 +131,6 @@ class ConvexHullSolverThread(QThread):
 			else:
 				moved1 = False
 
-
 			if self.slope(left[upperTan.indexL],right[(upperTan.indexR+1) % len(right)]) > upperTan.slope:
 				self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
 				upperTan.indexR	= ((upperTan.indexR + 1) % len(right))
@@ -156,19 +155,7 @@ class ConvexHullSolverThread(QThread):
 				moved1 = True
 			else:
 				moved1 = False
-			print('old slope')
-			print(lowerTan.slope)
-			print('old index on right')
-			print(lowerTan.indexR)
-			print('next int on right')
-			print((lowerTan.indexR-1) % len(right))
-			print('len right')
-			print(len(right))
-			print('right')
-			print(right)
-			print('new slope')
-			print(self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]))
-			print()
+
 			if self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]) < lowerTan.slope:
 				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				lowerTan.indexR = (lowerTan.indexR-1) % len(right)
@@ -189,18 +176,6 @@ class ConvexHullSolverThread(QThread):
 		if lowerTan.indexL != 0:
 			newHull.extend(left[lowerTan.indexL:])
 
-
-
-		# print('left')
-		# print(left)
-		# print('left rmi')
-		# print(rmiL)
-		# print('right')
-		# print(right)
-		# print('right rmi')
-		# print(rmiR)
-		# print('new hull')
-		# print(newHull)
 
 		#find new right most index
 		newRmi = 0
