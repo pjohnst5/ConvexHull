@@ -213,7 +213,7 @@ class Proj2GUI( QMainWindow ):
 		self.setCentralWidget( boxwidget )
 
 		self.view           = PointLineView( self.statusBar )
-		self.npoints        = QLineEdit('6')
+		self.npoints        = QLineEdit('10')
 		self.generateButton = QPushButton('Generate')
 		self.solveButton    = QPushButton('Solve')
 		self.clearButton    = QPushButton('Clear To Points')

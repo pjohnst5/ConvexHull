@@ -63,6 +63,16 @@ class ConvexHullSolverThread(QThread):
 		assert( type(lines) == list and type(lines[0]) == QLineF )
 		self.erase_tangent.emit(lines)
 
+	#Erase Hull
+	def eraseHull(self, points):
+		lines = []
+
+		for i in range(len(points) - 1):
+			lines.append(QLineF(points[i],points[i+1]))
+		lines.append(QLineF(points[len(points)-1], points[0]))
+		assert( type(lines) == list and type(lines[0]) == QLineF )
+		self.erase_hull.emit(lines)
+
 	#Gets slope of two points
 	def slope(self, p1, p2):
 		rise = p1.y() - p2.y()
@@ -146,7 +156,19 @@ class ConvexHullSolverThread(QThread):
 				moved1 = True
 			else:
 				moved1 = False
-
+			print('old slope')
+			print(lowerTan.slope)
+			print('old index on right')
+			print(lowerTan.indexR)
+			print('next int on right')
+			print((lowerTan.indexR-1) % len(right))
+			print('len right')
+			print(len(right))
+			print('right')
+			print(right)
+			print('new slope')
+			print(self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]))
+			print()
 			if self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]) < lowerTan.slope:
 				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				lowerTan.indexR = (lowerTan.indexR-1) % len(right)
@@ -156,7 +178,46 @@ class ConvexHullSolverThread(QThread):
 			else:
 				moved2 = False
 
-		#TODO: get rid of middle points and add tangent lines as new lines of a bigger combined hull
+		#combine hulls
+		newHull = []
+		newHull.extend(left[0:upperTan.indexL+1]) #gets leftmost of left to first point of uppertan
+		if lowerTan.indexR <= upperTan.indexR:
+			newHull.extend(right[upperTan.indexR:])
+			newHull.extend(right[0:(lowerTan.indexR+1) % len(right)])
+		else:
+			newHull.extend(right[upperTan.indexR:lowerTan.indexR + 1])
+		if lowerTan.indexL != 0:
+			newHull.extend(left[lowerTan.indexL:])
+
+
+
+		# print('left')
+		# print(left)
+		# print('left rmi')
+		# print(rmiL)
+		# print('right')
+		# print(right)
+		# print('right rmi')
+		# print(rmiR)
+		# print('new hull')
+		# print(newHull)
+
+		#find new right most index
+		newRmi = 0
+		for i in range(len(newHull)):
+			if newHull[i].x() > newHull[newRmi].x():
+				newRmi = i
+
+		#erase tans
+		self.eraseTan(left[upperTan.indexL], right[upperTan.indexR])
+		self.eraseTan(left[lowerTan.indexL], right[lowerTan.indexR])
+
+		#erase hulls
+		self.eraseHull(left)
+		self.eraseHull(right)
+
+		return newHull, newRmi
+
 
 
 
@@ -188,12 +249,12 @@ class ConvexHullSolverThread(QThread):
 
 		#Time to compute the hull using divide and conquer
 		t3 = time.time()
-		answer, rmi = self.getHull(self.points)
+		answer,rmi = self.getHull(self.points)
 
 
 		t4 = time.time()
 
-		USE_DUMMY = True
+		USE_DUMMY = False
 		if USE_DUMMY:
 			# this is a dummy polygon of the first 3 unsorted points
 			polygon = [QLineF(self.points[i],self.points[(i+1)%3]) for i in range(3)]
@@ -202,11 +263,10 @@ class ConvexHullSolverThread(QThread):
 			# object can be created with two QPointF objects corresponding to the endpoints
 			assert( type(polygon) == list and type(polygon[0]) == QLineF )
 			# send a signal to the GUI thread with the hull and its color
-			self.show_hull.emit(polygon,(255,0,0))
+			#self.show_hull.emit(polygon,(255,0,0))
 
 		else:
-			# TODO: PASS THE CONVEX HULL LINES BACK TO THE GUI FOR DISPLAY
-			pass
+			self.showHull(answer)
 
 		# send a signal to the GUI thread with the time used to compute the hull
 		self.display_text.emit('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))
