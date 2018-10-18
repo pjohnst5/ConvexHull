@@ -74,13 +74,13 @@ class ConvexHullSolverThread(QThread):
 		self.erase_hull.emit(lines)
 
 	#Gets slope of two points
-	def slope(self, p1, p2):
+	def slope(self, p1, p2):   #O(1)
 		rise = p1.y() - p2.y()
 		run = p1.x() - p2.x()
 		return rise/run
 
 	#Returns the hull and the index of right most point
-	def clockwiseOrder(self, points):
+	def clockwiseOrder(self, points):   #O(n)
 		if len(points) == 1:
 			return points, 0
 		elif len(points) == 2:
@@ -114,61 +114,72 @@ class ConvexHullSolverThread(QThread):
 			return clockwisePoints,2
 
 
-	def combine(self, left, rmiL, right, rmiR):
+	def combine(self, left, rmiL, right, rmiR): #O(n) where n is number of points in left + right
 		#This is the upper tan to start with, right most point of left hull and leftmost point of right hull
 		#I'm using indexes to keep track of points in order to go counter clockwise or clockwise
 		upperTan = Tan(rmiL, 0, self.slope(left[rmiL], right[0]))
-		self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+		#self.showTan(left[upperTan.indexL],right[upperTan.indexR])
 		moved1 = True
 		moved2 = True
+		#While either side of the tangent has moved, we will continue to search for the upper tangent
 		while moved1 or moved2:
+			#We move the left point counterclockwise, if the new slope is less than the old slope, update the slope
 			if self.slope(left[(upperTan.indexL - 1) % len(left)],right[upperTan.indexR]) < upperTan.slope:
-				self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
+				#self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
 				upperTan.indexL = (upperTan.indexL - 1) % len(left)
 				upperTan.slope = self.slope(left[upperTan.indexL],right[upperTan.indexR])
-				self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+				#self.showTan(left[upperTan.indexL],right[upperTan.indexR])
 				moved1 = True
+			#If the new slope is greater than or equal to the old slope, do nothing
 			else:
 				moved1 = False
 
+			#We move the right point clockwise, if the new slope is greater than the old slope, update the slope
 			if self.slope(left[upperTan.indexL],right[(upperTan.indexR+1) % len(right)]) > upperTan.slope:
-				self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
+				#self.eraseTan(left[upperTan.indexL],right[upperTan.indexR])
 				upperTan.indexR	= ((upperTan.indexR + 1) % len(right))
 				upperTan.slope = self.slope(left[upperTan.indexL],right[upperTan.indexR])
-				self.showTan(left[upperTan.indexL],right[upperTan.indexR])
+				#self.showTan(left[upperTan.indexL],right[upperTan.indexR])
 				moved2 = True
+			#New slope was less than or equal than old slope, do nothing
 			else:
 				moved2 = False
 
 		#Compute the lower tangent
 		lowerTan = Tan(rmiL, 0, self.slope(left[rmiL], right[0]))
-		self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+		#self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
 		moved1 = True
 		moved2 = True
 
+		#We keep trying to find a better lower tangent if either of the points of lowerTan has changed
 		while moved1 or moved2:
+			#We move the left point of lowerTan clockwise, if the new slope is greater than the old, we update the slope.
 			if self.slope(left[(lowerTan.indexL+1) % len(left)],right[lowerTan.indexR]) > lowerTan.slope:
-				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				#self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				lowerTan.indexL = (lowerTan.indexL+1) % len(left)
 				lowerTan.slope = self.slope(left[lowerTan.indexL], right[lowerTan.indexR])
-				self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				#self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				moved1 = True
 			else:
 				moved1 = False
 
+			#We move the right point of lower tan counter clockwise, if the new slope is less than old, update
 			if self.slope(left[lowerTan.indexL], right[(lowerTan.indexR-1) % len(right)]) < lowerTan.slope:
-				self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				#self.eraseTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				lowerTan.indexR = (lowerTan.indexR-1) % len(right)
 				lowerTan.slope = self.slope(left[lowerTan.indexL], right[lowerTan.indexR])
-				self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
+				#self.showTan(left[lowerTan.indexL],right[lowerTan.indexR])
 				moved2 = True
 			else:
 				moved2 = False
 
-		#combine hulls
+		#combine hulls with the upperTan and lowerTan
 		newHull = []
-		newHull.extend(left[0:upperTan.indexL+1]) #gets leftmost of left to first point of uppertan
-		if lowerTan.indexR <= upperTan.indexR:
+		#gets leftmost of left to first point of uppertan
+		newHull.extend(left[0:upperTan.indexL+1])
+
+		#special cases when combining the rest of the hull
+		if lowerTan.indexR < upperTan.indexR:
 			newHull.extend(right[upperTan.indexR:])
 			newHull.extend(right[0:(lowerTan.indexR+1) % len(right)])
 		else:
@@ -184,27 +195,30 @@ class ConvexHullSolverThread(QThread):
 				newRmi = i
 
 		#erase tans
-		self.eraseTan(left[upperTan.indexL], right[upperTan.indexR])
-		self.eraseTan(left[lowerTan.indexL], right[lowerTan.indexR])
+		#self.eraseTan(left[upperTan.indexL], right[upperTan.indexR])
+		#self.eraseTan(left[lowerTan.indexL], right[lowerTan.indexR])
 
 		#erase hulls
-		self.eraseHull(left)
-		self.eraseHull(right)
+		#self.eraseHull(left)
+		#self.eraseHull(right)
 
 		return newHull, newRmi
 
 
-
-
-
-
-	def getHull(self, points):
+	#This is the divide and conquer function
+	def getHull(self, points): #a = 2, b = 2, c = 1, O(n log(n))s
+		#Base case: if the hull is less than 4 points we create a base hull
 		if len(points) < 4:
 			return self.clockwiseOrder(points)
+		#We split the hull in 2 and give the left most half of points to getHull
 		left, rmiL = self.getHull(points[0:math.ceil(len(points)/2)])
-		self.showHull(left)
+		#self.showHull(left)
+
+		#We take the right half of the hull and give it to getHull
 		right, rmiR = self.getHull(points[math.ceil(len(points)/2):])
-		self.showHull(right)
+		#self.showHull(right)
+
+		#We then take both halves of hull and combine them
 		return self.combine(left, rmiL, right, rmiR)
 
 #End my functions
@@ -213,6 +227,7 @@ class ConvexHullSolverThread(QThread):
 		assert( type(self.points) == list and type(self.points[0]) == QPointF )
 
 		n = len(self.points)
+		print()
 		print( 'Computing Hull for set of {} points'.format(n) )
 
 		#Sorts points by increasing X value
@@ -220,12 +235,11 @@ class ConvexHullSolverThread(QThread):
 		self.points.sort(key=lambda point: point.x(), reverse=False)
 
 		t2 = time.time()
-		print('Time Elapsed (Sorting): {:3.3f} sec'.format(t2-t1))
+		#print('Time Elapsed (Sorting): {:3.3f} sec'.format(t2-t1))
 
 		#Time to compute the hull using divide and conquer
 		t3 = time.time()
 		answer,rmi = self.getHull(self.points)
-
 
 		t4 = time.time()
 
@@ -245,4 +259,5 @@ class ConvexHullSolverThread(QThread):
 
 		# send a signal to the GUI thread with the time used to compute the hull
 		self.display_text.emit('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))
-		print('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))
+		#print('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))
+		print('Total time: {:3.3f} sec'.format(t4-t1))
